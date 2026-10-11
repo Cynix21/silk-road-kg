@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>蜀锦 × 新疆织锦 文化交融知识图谱</title>
 <script>
 /*
@@ -66,6 +67,17 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   #panel{font-size:12px;color:#555}
   #mask{position:absolute;right:18px;top:58px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;max-width:420px;font-size:12.5px;color:#333;line-height:1.75;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none}
   #mask b{color:#1f3b63}
+
+@media (max-width:600px){
+  #bar{height:auto;padding:10px 12px}
+  #bar b{font-size:15px}
+  #bar .sub{font-size:11px;line-height:1.5}
+  #ctrl{position:static;margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  select{font-size:12px;padding:3px 6px}
+  #legend{padding:6px 12px;font-size:11px;line-height:1.8}
+  #chart{height:calc(100vh - 240px)}
+  #mask{right:8px;top:auto;max-width:calc(100vw - 16px)}
+}
 </style>
 </head>
 <body>
@@ -120,12 +132,13 @@ function build(typeF, relF){
   var nd = nodes.map(function(n){
     var d = deg[n.id]||1;
     var core = d>=3;
+    var mob = window.innerWidth < 600;
     return {
       id:n.id, name:n.name, x:n.x, y:n.y,
       category:n.category, type:n.type,
-      symbolSize: core ? 16 + d*2.4 : (d===2 ? 13 : 8),
+      symbolSize: core ? (mob ? 12 + d*2.0 : 16 + d*2.4) : (d===2 ? (mob?11:13) : (mob?7:8)),
       itemStyle: core ? {color:n.itemStyle.color, borderColor:'#fff', borderWidth:1.5} : {color:n.itemStyle.color, opacity: d===2 ? 0.85 : 0.55},
-      label:{show: core, fontSize: core ? 13 : 10, fontWeight:'bold', color:'#1f3b63'},
+      label:{show: core, fontSize: core ? (mob?11:13) : (mob?9:10), fontWeight:'bold', color:'#1f3b63'},
       emphasis:{label:{show:true, fontSize:13, fontWeight:'bold'}, itemStyle:{opacity:1}}
     };
   });
