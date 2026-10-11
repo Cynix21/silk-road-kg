@@ -76,6 +76,20 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   button:disabled{opacity:.4;cursor:default}
   #pos{font-weight:800;color:#1f3b63;font-size:16px}
   #hint{flex:1;font-size:13px;color:#6b7280}
+
+@media (max-width:600px){
+  #top{height:auto;flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px}
+  #top .txt{width:100%}
+  #title{font-size:19px}
+  #caption{font-size:14.5px;line-height:1.6}
+  #sceneImg{max-height:150px;max-width:100%;align-self:center}
+  #legend{padding:6px 14px;font-size:11.5px;line-height:1.9}
+  #chart{min-height:260px}
+  #nav{padding:8px 14px;gap:8px}
+  #hint{display:none}
+  button{font-size:14px;padding:7px 16px}
+  #pos{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -156,10 +170,11 @@ function render(){
       x = cx + R*Math.cos(ang); y = cy + R*Math.sin(ang); pos='right';
     }
     var isHero = (i===0);
+             var mob = window.innerWidth < 600;
     return { id:n.id, name:n.name, category:n.category, type:n.type,
-             x:x, y:y, symbolSize: isHero ? 46 : 34,
+             x:x, y:y, symbolSize: isHero ? (mob?40:46) : (mob?30:34),
              itemStyle:{color:n.itemStyle.color, borderColor:'#fff', borderWidth:2.5},
-             label:{show:true, position:pos, fontSize: isHero ? 17 : 15, fontWeight:'bold', color:'#1f3b63'} };
+             label:{show:true, position:pos, fontSize: isHero ? (mob?15:17) : (mob?13:15), fontWeight:'bold', color:'#1f3b63'} };
   });
 
   var lk = links.map(function(l){
