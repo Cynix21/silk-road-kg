@@ -1,4 +1,4 @@
-﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="utf-8">
@@ -62,6 +62,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   select{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;max-width:46vw}
   #fusionBtn{padding:6px 12px;border:1px solid #1f3b63;background:#fff;color:#1f3b63;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap}
   #fusionBtn.on{background:#1f3b63;color:#fff}
+  #legendBtn{display:none}
   .zbtn{padding:6px 10px;border:1px solid #ccc;background:#fff;color:#1f3b63;border-radius:6px;cursor:pointer;font-size:14px;line-height:1;min-width:34px;touch-action:manipulation}
   .zbtn:active{background:#eef1f6}
   #legend{padding:7px 16px;background:#fbfbfd;border-bottom:1px solid #e5e7eb;font-size:12px;color:#444;line-height:1.9}
@@ -86,19 +87,22 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     select{font-size:12px;padding:4px 6px}
     #fusionBtn{font-size:12px;padding:5px 10px}
     .zbtn{padding:6px 12px;font-size:16px;min-width:38px}
+    #legendBtn{display:inline-block;padding:6px 10px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:13px;cursor:pointer;color:#1f3b63}
     #legend{padding:5px 12px;font-size:11px;line-height:1.7}
     .tip-long{display:none}
     .tip-short{display:inline}
-    #mask{right:8px;top:6px;max-height:55%}
+    #mask{left:0;right:0;top:auto;bottom:0;max-width:none;max-height:48%;border-radius:14px 14px 0 0;padding:12px 14px 18px;border-bottom:none;border-left:none;border-right:none}
+    #maskClose{top:10px;right:12px}
   }
 </style>
 </head>
 <body>
 <div id="bar">
   <b>跨地域非遗文化交融知识图谱 · 实例图</b>
-  <div class="sub">蜀锦 × 新疆织锦（艾德莱斯）｜94 条三元组 · 107 实体 · 11 关系 ｜ 点击节点看三元组与出处</div>
+  <div class="sub">蜀锦 × 新疆织锦（艾德莱斯）｜94 三元组 · 107 实体｜点节点看三元组与出处</div>
   <div id="ctrl">
     <button id="fusionBtn"></button>
+    <button id="legendBtn">图例</button>
     <button id="zin" class="zbtn" aria-label="放大">+</button><button id="zout" class="zbtn" aria-label="缩小">-</button>
     <select id="typeSel"><option value="">全部类型</option></select>
     <select id="relSel"><option value="">全部关系</option></select>
@@ -149,6 +153,10 @@ function syncBtn(){
   fusionBtn.className = fusionOnly ? 'on' : '';
 }
 fusionBtn.onclick = function(){ fusionOnly = !fusionOnly; syncBtn(); build(typeSel.value, relSel.value); };
+var legendBtn = document.getElementById('legendBtn');
+var legendEl = document.getElementById('legend');
+if (mob) legendEl.style.display='none';
+legendBtn.onclick = function(){ legendEl.style.display = legendEl.style.display==='none' ? '' : 'none'; };
 document.getElementById('zin').onclick = function(){ setZoom(1.3); };
 document.getElementById('zout').onclick = function(){ setZoom(1/1.3); };
 if (mob) {
@@ -165,44 +173,40 @@ if (mob) {
   });
 }
 
-// 手机端：把当前子图按“中心枢纽 + 同心环”重新排布，保证一屏放下、不重叠
+// 手机端：按“中心枢纽 + 度数分层同心环”重新排布，任意节点数都整齐、一屏放下
 function radialLayout(nodes, links, w, h){
   var dg = {};
   links.forEach(function(l){ dg[l.source]=(dg[l.source]||0)+1; dg[l.target]=(dg[l.target]||0)+1; });
+  var cx = w/2, cy = h/2;
+  var pos = {};
   var byDeg = nodes.slice().sort(function(a,b){ return (dg[b.id]||0)-(dg[a.id]||0); });
   var center = byDeg[0];
-  var cx = w/2, cy = h/2;
-  var pos = {}; pos[center.id] = {x:cx, y:cy};
-  var nbr = {};
-  links.forEach(function(l){ if(l.source===center.id) nbr[l.target]=1; if(l.target===center.id) nbr[l.source]=1; });
-  var ring1 = [], rest = [];
-  nodes.forEach(function(n){ if(n.id===center.id) return; (nbr[n.id] ? ring1 : rest).push(n); });
-  var R1 = Math.min(w,h) * (ring1.length ? 0.34 : 0);
-  ring1.forEach(function(n,i){ var a = -Math.PI/2 + 2*Math.PI*i/ring1.length; pos[n.id]={x:cx+R1*Math.cos(a), y:cy+R1*Math.sin(a)}; });
-  var R2 = Math.min(w,h) * 0.46;
-  var groups = {}; ring1.forEach(function(n){ groups[n.id]=[]; }); groups['_c']=[];
-  rest.forEach(function(n){
-    var anchor='_c';
-    for(var i=0;i<links.length;i++){ var l=links[i];
-      if(l.source===n.id && nbr[l.target]){ anchor=l.target; break; }
-      if(l.target===n.id && nbr[l.source]){ anchor=l.source; break; }
-    }
-    if(anchor!=='_c' && groups[anchor]) groups[anchor].push(n); else groups['_c'].push(n);
+  pos[center.id] = {x:cx, y:cy};
+  var layers = [[],[],[],[]];
+  nodes.forEach(function(n){
+    if(n.id===center.id) return;
+    var d = dg[n.id]||0;
+    if(d>=4) layers[0].push(n);
+    else if(d===3) layers[1].push(n);
+    else if(d===2) layers[2].push(n);
+    else layers[3].push(n);
   });
-  ring1.forEach(function(n){
-    var an = Math.atan2(pos[n.id].y-cy, pos[n.id].x-cx);
-    var g = groups[n.id], span = 0.6;
-    g.forEach(function(m,i){
-      var a = an + (g.length>1 ? (i-(g.length-1)/2)*(span/Math.max(1,g.length-1)) : 0);
-      pos[m.id]={x:cx+R2*Math.cos(a), y:cy+R2*Math.sin(a)};
+  var radii = [0.26, 0.36, 0.43, 0.48];
+  var base = Math.min(w,h);
+  layers.forEach(function(L, li){
+    if(!L.length) return;
+    var R = base * radii[li];
+    var off = (li%2) * 0.5;
+    L.forEach(function(n, i){
+      var a = -Math.PI/2 + 2*Math.PI*(i + off*L.length)/Math.max(1,L.length);
+      pos[n.id] = {x:cx + R*Math.cos(a), y:cy + R*Math.sin(a)};
     });
   });
-  var gc = groups['_c'];
-  gc.forEach(function(m,i){ var a=-Math.PI/2 + 2*Math.PI*i/Math.max(1,gc.length); pos[m.id]={x:cx+R2*Math.cos(a), y:cy+R2*Math.sin(a)}; });
   return pos;
 }
 
 function build(typeF, relF){
+  if (mob) zoomLevel = 1;
   var nodes = G.nodes.filter(function(n){ return !typeF || n.type===typeF; });
   var ids = {};
   nodes.forEach(function(n){ ids[n.id]=true; });
@@ -220,7 +224,7 @@ function build(typeF, relF){
   links.forEach(function(l){ subDeg[l.source]=(subDeg[l.source]||0)+1; subDeg[l.target]=(subDeg[l.target]||0)+1; });
 
   var pos = null;
-  if (mob && nodes.length && nodes.length <= 40){
+  if (mob && nodes.length){
     chart.resize();
     var w = chart.getWidth() || document.getElementById('chart').clientWidth;
     var h = chart.getHeight() || document.getElementById('chart').clientHeight;
@@ -232,11 +236,12 @@ function build(typeF, relF){
     var core = d>=3;
     var mid = d===2;
     var p = (pos && pos[n.id]) || n;
-    var label = mob ? (d>=2) : core;
+    var dense = mob && nodes.length > 50;
+    var label = mob ? (dense ? core : (d>=2)) : core;
     return {
       id:n.id, name:n.name, x:p.x, y:p.y,
       category:n.category, type:n.type,
-      symbolSize: core ? (mob ? 14 + d*1.6 : 16 + d*2.4) : (mid ? (mob?11:13) : (mob?7.5:8)),
+      symbolSize: core ? (dense ? 11 : (mob ? 14 + d*1.6 : 16 + d*2.4)) : (mid ? (dense ? 7 : (mob?11:13)) : (dense ? 4.5 : (mob?7.5:8))),
       itemStyle: core ? {color:n.itemStyle.color, borderColor:'#fff', borderWidth:1.5} : {color:n.itemStyle.color, opacity: mid ? 0.85 : 0.75},
       label:{show: label, fontSize: core ? (mob?11:13) : (mob?9.5:10), fontWeight: core?'bold':'normal', color:'#1f3b63'},
       emphasis:{label:{show:true, fontSize: mob?11:13, fontWeight:'bold'}, itemStyle:{opacity:1}}
@@ -253,7 +258,7 @@ function build(typeF, relF){
   });
 
   chart.setOption({
-    tooltip:{formatter:function(p){
+    tooltip: mob ? {show:false} : {formatter:function(p){
       if(p.dataType==='edge'){
         return '<b>'+p.data.relation+'</b><br>'+p.data.source+' → '+p.data.target+
                '<br><span style="color:#888">'+p.data.evidence+'</span>'+
@@ -280,6 +285,7 @@ chart.on('graphRoam', function(){ mask.style.display='none'; });
 maskClose.onclick = function(){ mask.style.display='none'; };
 chart.on('click', function(p){
   if(p.dataType==='node'){
+    chart.dispatchAction({type:'hideTip'});
     var d=p.data;
     var es=G.links.filter(function(l){ return l.source===d.id || l.target===d.id; });
     var html='<b>'+d.name+'</b>（'+d.type+'）· 关联 '+es.length+' 条三元组<br>';
